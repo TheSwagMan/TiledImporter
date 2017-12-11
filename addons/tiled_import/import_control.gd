@@ -62,18 +62,11 @@ func import_tileset():
 	var tileset_path = $tabc/Tileset/container/set_in_pth.text
 	var export_path = $tabc/Tileset/container/set_out_pth.text
 	print("From " + tileset_path + " to " + export_path)
-	
 	var parsed_tileset = parse_my_file(tileset_path)
-	# var tileset = TileSet.new()
 	var root = Node2D.new()
 	root.set_name(parsed_tileset.name)
 	var image_path = tileset_path.get_base_dir() + "/" + parsed_tileset.image
-	# var new_image_path = export_path.get_basename() + "." + image_path.get_extension()
 	var dir = Directory.new()
-	# var error = dir.copy(image_path, new_image_path)
-	# if error != OK:
-	# 	print("Error : " + str(error))
-	# 	return FAILED
 	var img_tex = ImageTexture.new()
 	img_tex.load(image_path)
 	var img = img_tex.get_data()
@@ -81,6 +74,8 @@ func import_tileset():
 		for j in range(parsed_tileset.columns):
 			var idx = i * parsed_tileset.tilecount / parsed_tileset.columns + j
 			var sprite = Sprite.new()
+			root.add_child(sprite)
+			sprite.set_owner(root)
 			sprite.set_name(str(idx))
 			var tex = ImageTexture.new()
 			sprite.centered = false
@@ -88,15 +83,22 @@ func import_tileset():
 			tex.create_from_image(img.get_rect(Rect2(sprite.position, Vector2(parsed_tileset.tilewidth, parsed_tileset.tileheight))))
 			tex.set_flags(0)
 			sprite.texture = tex
-			root.add_child(sprite)
-			sprite.set_owner(root)
-			# tileset.create_tile(idx)
-			# tileset.tile_set_name(idx, ("%0" + str(str(b.tilecount).length()) + "d") % idx)
-			# tileset.tile_set_texture(idx, tex)
+			if parsed_tileset.has("tiles") and parsed_tileset.tiles.has(str(idx)):
+				var static_body = StaticBody2D.new()
+				sprite.add_child(static_body)
+				static_body.set_owner(root)
+				for obj in parsed_tileset.tiles[str(idx)].objectgroup.objects:
+					if obj.type == "":
+						var shape = CollisionShape2D.new()
+						static_body.add_child(shape)
+						shape.set_owner(root)
+						var rect = RectangleShape2D.new()
+						rect.extents = Vector2(obj.width / 2, obj.height / 2)
+						shape.shape = rect
+						shape.position = Vector2(obj.x + obj.width / 2, obj.y + obj.height / 2)
 	var packed = PackedScene.new()
 	packed.pack(root)
 	ResourceSaver.save(export_path, packed)
-	# ResourceSaver.save($container/set_pth.text + ".tileset.tres", tileset)
 	print("Done !")
 
 func import_tilemap():
